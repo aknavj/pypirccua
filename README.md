@@ -13,9 +13,9 @@ Description of fileformat specification can be found in the [official reference 
 
 ## Screenshots
 
-![initial db view](./img/app1.png)
+![initial db view](./imgs/app1.png)
 
-![dbfile -> table association](./img/app2.png)
+![dbfile -> table association](./imgs/app2.png)
 
 ## Dependencies
 
