@@ -19,6 +19,11 @@ Description of fileformat specification can be found in the [official reference 
 
 ## Dependencies
 
+**matplotlib**
+```
+pip install matplotlib
+```
+
 **PyQT5**
 ```
 pip install PyQt5
