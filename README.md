@@ -4,6 +4,19 @@ This humble project brings you an boring Relay Cycle Counting utility applicatio
 
 Description of fileformat specification can be found in the [official reference manual](https://downloads.pickeringtest.info/downloads/RelayCountingApplication/RelayCountingAppHelp.pdf)
 
+## Features
+
+1. Parses RelayCount Card Database File (something like NI PXIe Health Monitor)
+2. Shows statistics on pickering PXI card physical or logical layers.
+3. Allows user to set count heatmap and have visual feedback reference.
+4. Associate txt file with table view
+
+## Screenshots
+
+![initial db view](./img/app1.png)
+
+![dbfile -> table association](./img/app2.png)
+
 ## Dependencies
 
 **PyQT5**
@@ -13,5 +26,5 @@ pip install PyQt5
 
 ## Run
 ```
-python app.py
+python pircviewer.py
 ```
