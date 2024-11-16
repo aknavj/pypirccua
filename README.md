@@ -1,6 +1,6 @@
 # pypirccua
 
-This humble project introduces a **Relay Cycle Counting utility application** implemented in Python. The utility functions as a **PiLpxi database file parser** and data viewer, with some **basic statistics** (questionable).
+This humble project introduces a **Relay Cycle Counting utility application** implemented in Python. The utility functions as a **pxi database file parser** and data viewer, with some **basic statistics** (questionable).
 
 The **file format specification** is described in the official reference manual. [official reference manual](https://downloads.pickeringtest.info/downloads/RelayCountingApplication/RelayCountingAppHelp.pdf)
 
