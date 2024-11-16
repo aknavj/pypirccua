@@ -26,19 +26,12 @@ The **file format specification** is described in the [official reference manual
 
 ![dbfile -> table association](./assets/app2.png)
 
-## Dependencies
-
-**matplotlib**
+## Install
 ```
-pip install matplotlib
-```
-
-**PyQT5**
-```
-pip install PyQt5
+pip install .
 ```
 
 ## Run
 ```
-python pircviewer.py
+pypirccua
 ```
