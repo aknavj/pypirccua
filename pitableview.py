@@ -5,7 +5,7 @@
 # 
 # File:         pitableview.py
 # Description:  Qt Pi Database File parsed into Data Table View
-# Version:      1.00
+# Version:      1.01
 # Author:       Ondrej Vanka @aknavj <ondrej@vanka.net>
 # 
 # This program is free software: you can redistribute it and/or modify
@@ -31,11 +31,13 @@ from PyQt5.QtCore import pyqtSignal
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import numpy as np
+import statistics
 import re
 
 class PiTableView(QTabWidget):
 
     cell_selected = pyqtSignal(str)  # signal to emit the relay line text
+    statistics_row_selected = pyqtSignal(str)  # signal to emit when a statistics row is selected
 
     def __init__(self, heatmap_range_widget, parent=None):
         super().__init__(parent)
@@ -44,6 +46,8 @@ class PiTableView(QTabWidget):
         
         self.layout = QVBoxLayout()
         self.tab_widget = QTabWidget()
+        self.stats_table = QTableWidget()
+
         self.layout.addWidget(self.tab_widget)
         self.setLayout(self.layout)
         self.parsed_data = None
@@ -57,10 +61,10 @@ class PiTableView(QTabWidget):
 
     def mousePressEvent(self, event):
         """Handle mouse press events and highlight table items."""
-        # Get the current table in the active tab
+        # get the current table in the active tab
         current_widget = self.currentWidget()
         if isinstance(current_widget, QTableWidget):
-            # Get the item at the mouse click position
+            # get the item at the mouse click position
             table_item = current_widget.itemAt(event.pos())
             if table_item:
                 table_item.setSelected(True)
@@ -92,15 +96,16 @@ class PiTableView(QTabWidget):
         # logical subunits
         for subunit in self.parsed_data.get("subunits", []):
             subunit_widget = self.create_subunit_tab(subunit)
-            self.tab_widget.addTab(subunit_widget, f"Logical {subunit['layer_id']}")
+            self.tab_widget.addTab(subunit_widget, f"Subunit {subunit['layer_id']} - {subunit['description']}")
 
         # physical loops
         for loop in self.parsed_data.get("physical_layers", []):
             loop_widget = self.create_physical_tab(loop)
-            self.tab_widget.addTab(loop_widget, f"Physical {loop['loop_id']}")
+            self.tab_widget.addTab(loop_widget, f"Loop {loop['loop_id']} - physical")
 
     def clear_tabs(self):
         """Clear tabs."""
+        self.stats_table.clear()
         self.tables.clear()
         self.tab_widget.clear()
 
@@ -221,22 +226,47 @@ class PiTableView(QTabWidget):
         widget = QWidget()
         layout = QVBoxLayout()
 
+        # clear stats table
+        self.stats_table.clear()
+
         # overall statistics table
-        layers = self.parsed_data.get("subunits", []) + self.parsed_data.get("physical_layers", [])
-        stats_table = QTableWidget(len(layers), 5)
-        stats_table.setHorizontalHeaderLabels(["Layer", "Type", "Max Count", "Mean Count", "Total Count"])
+        self.stats_table.setColumnCount(6)
+        self.stats_table.setHorizontalHeaderLabels(["Layer", "Type", "Relay Counts", "Max Count", "Mean Count", "Total Count"])
 
-        for i, layer in enumerate(layers):
-            layer_type = "Logical" if "layer_id" in layer else "Physical"
-            name = f"{layer_type} {layer.get('layer_id', layer.get('loop_id'))}"
-            values = list(layer["relays"].values())
-            stats_table.setItem(i, 0, QTableWidgetItem(name))
-            stats_table.setItem(i, 1, QTableWidgetItem(layer_type))
-            stats_table.setItem(i, 2, QTableWidgetItem(str(max(values, default=0))))
-            stats_table.setItem(i, 3, QTableWidgetItem(f"{np.mean(values):.2f}" if values else "0.00"))
-            stats_table.setItem(i, 4, QTableWidgetItem(str(sum(values, 0))))
+        # combine logical and physical layers into a unified dataset
+        all_layers = []
 
-        layout.addWidget(stats_table)
+        # logical layers statistics
+        for subunit in self.parsed_data.get("subunits", []):
+            name = f"Subunit {subunit['layer_id']}"
+            type = f"{subunit['description']}"
+            relay_counts = list(subunit["relays"].values())
+            max_count = max(relay_counts, default=0)
+            mean_count = round(sum(relay_counts) / len(relay_counts), 2) if relay_counts else 0
+            sum_counts = round(sum(relay_counts)) if len(relay_counts) > 1 else 0
+            all_layers.append([name, type, relay_counts, max_count, mean_count, sum_counts])
+
+        # physical layers statistics
+        for loop in self.parsed_data.get("physical_layers", []):
+            name = f"Loop {loop['loop_id']}"
+            type = f"Physical"
+            relay_counts = list(loop["relays"].values())
+            max_count = max(relay_counts, default=0)
+            mean_count = round(sum(relay_counts) / len(relay_counts), 2) if relay_counts else 0
+            sum_counts = round(sum(relay_counts)) if len(relay_counts) > 1 else 0
+            all_layers.append([name, type, relay_counts, max_count, mean_count, sum_counts])
+
+        # populate the table
+        self.stats_table.setRowCount(len(all_layers))
+        for row, layer_stats in enumerate(all_layers):
+            for col, value in enumerate(layer_stats):
+                self.stats_table.setItem(row, col, QTableWidgetItem(str(value)))
+
+        # signal & slot connection
+        self.stats_table.itemSelectionChanged.connect(self.on_statistics_row_selected)
+
+        # add the table to the layout
+        layout.addWidget(self.stats_table)
 
         # add overall graph
         canvas = self.create_overall_graph()
@@ -296,6 +326,13 @@ class PiTableView(QTabWidget):
 
         return canvas
     
+    def on_statistics_row_selected(self):
+        """Emit the layer name when a statistics row is selected."""
+        selected_items = self.stats_table.selectedItems()
+        if selected_items:
+            layer_name = selected_items[0].text() # column name
+            self.statistics_row_selected.emit(layer_name)
+
     def highlight_table_by_line(self, line_text):
         """Highlight the corresponding table cell based on the line text."""
         if line_text.startswith("R;L;"):
@@ -307,7 +344,8 @@ class PiTableView(QTabWidget):
                         cols = subunit["cols"]
                         row = (bit - 1) // cols
                         col = (bit - 1) % cols
-                        self.highlight_table_cell(f"Logical {subunit_id}", row, col)
+                        regex = rf'^Subunit {subunit_id} -.*$'
+                        self.highlight_table_cell(regex, row, col)
                         break
 
         elif line_text.startswith("R;P;"):
@@ -316,17 +354,22 @@ class PiTableView(QTabWidget):
                 loop_id, bit, _ = map(int, match.groups())
                 for loop in self.parsed_data.get("physical_layers", []):
                     if loop["loop_id"] == loop_id:
-                        self.highlight_table_cell(f"Physical {loop_id}", bit - 1, 0)
+                        regex = rf'^Loop {loop_id} -.*$'
+                        self.highlight_table_cell(regex, bit - 1, 0)
                         break
 
-    def highlight_table_cell(self, tab_name, row, col):
+    def highlight_table_cell(self, regex, row, col):
         """Highlight a specific table cell in the given tab."""
+        pattern = re.compile(regex)
         for index in range(self.tab_widget.count()):
-            if self.tab_widget.tabText(index) == tab_name:
+            tab_name = self.tab_widget.tabText(index)
+            if pattern.match(tab_name):  # match the regex with the tab name
                 self.tab_widget.setCurrentIndex(index)
                 table = self.tab_widget.widget(index).findChild(QTableWidget)
                 if table:
                     table.setCurrentCell(row, col)
+                    table.scrollToItem(table.item(row, col))  # ensure the cell is visible
+                    break
 
     def apply_heatmap_to_table(self, table, heatmap_ranges):
         """Apply heatmap colors to a specific table."""

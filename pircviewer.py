@@ -69,6 +69,7 @@ class PircViewer(QMainWindow):
         self.pi_db_table_view.cell_selected.connect(self.on_table_cell_selected)
         self.pi_db_card_list.generation_selected.connect(self.load_file_from_tree)
         self.heatmap_range_widget.range_changed.connect(self.update_heatmap)
+        self.pi_db_table_view.statistics_row_selected.connect(self.switch_tab_by_layer_name)
 
         # file menu
         self.create_menu()
@@ -144,6 +145,14 @@ class PircViewer(QMainWindow):
         for idx in range(self.pi_db_card_view.count()):
             if self.pi_db_card_view.item(idx).text() == relay_line:
                 self.pi_db_card_view.setCurrentRow(idx)
+                break
+
+    def switch_tab_by_layer_name(self, layer_name):
+        """Switch to the tab corresponding to the selected layer."""
+        for index in range(self.pi_db_table_view.tab_widget.count()):
+            tab_name = self.pi_db_table_view.tab_widget.tabText(index)
+            if layer_name in tab_name:  # match layer name in tab name
+                self.pi_db_table_view.tab_widget.setCurrentIndex(index)
                 break
 
     def update_heatmap(self, ranges):
