@@ -22,12 +22,14 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
 
-from pitableview import *
-from pidbcardview import *
-from pidbcardlist import *
+from .pidbcard import PiDbCard
+from .pitableview import PiTableView
+from .pidbcardview import PiDbCardView
+from .pidbcardlist import PiDbCardList
+from .heatmaprange import HeatMapRange
 
 from PyQt5.QtWidgets import (
-    QMainWindow, QApplication, QSplitter, QFileDialog, QMenuBar, QAction
+    QMainWindow, QWidget, QVBoxLayout, QSplitter, QFileDialog
 )
 
 import sys
@@ -158,9 +160,3 @@ class PircViewer(QMainWindow):
     def update_heatmap(self, ranges):
         """Update the heatmap in all table views."""
         self.pi_db_table_view.reload_heatmap(ranges)
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    wnd = PircViewer()
-    wnd.show()
-    sys.exit(app.exec_())

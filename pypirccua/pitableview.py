@@ -22,8 +22,8 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
 
-from pidbcard import *
-from heatmaprange import *
+from .pidbcard import *
+from .heatmaprange import *
 
 from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QTabWidget, QSplitter
 from PyQt5.QtCore import Qt

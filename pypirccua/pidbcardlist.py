@@ -32,8 +32,8 @@ class PiDbCardList(QTreeWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setMinimumSize(240,420)
-        self.setMaximumSize(420,980)
+        self.setMinimumSize(160,420)
+        self.setMaximumSize(280,980)
 
         self.setColumnCount(1)
         self.setHeaderLabels(["PXI Cards"])
