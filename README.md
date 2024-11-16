@@ -1,15 +1,24 @@
-# python (not)pickering's relay cycle counting utility application
+# pypirccua
 
-This humble project brings you an boring Relay Cycle Counting utility application implemented in python, mostly diffs and statistics between DB files... and because there is a lack of pickering GUI applications under linux...
+This humble project introduces a **Relay Cycle Counting utility application** implemented in Python. The utility functions as a **PiLpxi database file parser** and data viewer, with some **basic statistics** (questionable).
 
-Description of fileformat specification can be found in the [official reference manual](https://downloads.pickeringtest.info/downloads/RelayCountingApplication/RelayCountingAppHelp.pdf)
+The **file format specification** is described in the official reference manual. [official reference manual](https://downloads.pickeringtest.info/downloads/RelayCountingApplication/RelayCountingAppHelp.pdf)
+
+## License
+- Under GNU/GPL
 
 ## Features
+- Parses **RelayCount Card Database Files** (similar to the NI PXIe Health Monitor).
+- Displays statistics on Pickering PXI card physical or logical layers.
+- Allows users to set a **count heatmap** and provides **visual feedback** as a reference.
+- Associates a `.db` file with a **table view**.
 
-1. Parses RelayCount Card Database File (something like NI PXIe Health Monitor)
-2. Shows statistics on pickering PXI card physical or logical layers.
-3. Allows user to set count heatmap and have visual feedback reference.
-4. Associate txt file with table view
+## Future Nice-to-Haves
+1. **Interconnect DB data mapping** with the eBirst Card Definition set XML data, and visualize side-by-side with the default database **CardTableView**.
+2. If time permits: 
+   - Implement **PiLpxi & LXI client bridge functionality** into the application.
+   - Add **dataset export functionality** to Google Sheets.
+   - Introduce additional statistics with an improved graph view (including support for zoom-in/out, selection, and callbacks in the table view).
 
 ## Screenshots
 
