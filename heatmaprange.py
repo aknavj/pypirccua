@@ -1,57 +1,84 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+# Copyright (C) 2024, Ondrej Vanka
+# 
+# File:         heatmaprange.py
+# Description:  Qt Heatmap range widget
+# Version:      1.00
+# Author:       Ondrej Vanka @aknavj <ondrej@vanka.net>
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+"""
+
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QSpinBox, QPushButton, QSplitter
 from PyQt5.QtGui import QColor
+from PyQt5.QtCore import pyqtSignal
 
 # helper func
 def get_heatmap_color(value, ranges):
-    """Return a QColor based on the value and ranges."""
+    """Determine the heatmap color for a given value."""
     if value == 0:
-        return QColor("gray")
-    elif value <= ranges["ok_max"]:
-        return QColor("green")
-    elif value <= ranges["warning_max"]:
-        return QColor("yellow")
+        return QColor(128, 128, 128)    # gray for no count
+    elif value <= ranges[0]:
+        return QColor(0, 255, 0)        # green for ok Level
+    elif value <= ranges[1]:
+        return QColor(255, 255, 0)      # yellow for warning Level
     else:
-        return QColor("red")
+        return QColor(255, 0, 0)        # red for critical Level
 
-# heatmap widget
 class HeatMapRange(QWidget):
-    
+
+    range_changed = pyqtSignal(list)  # signal emitted when ranges are updated
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.layout = QHBoxLayout()
 
-        self.no_count_label = QLabel("No Count (0):")
-        self.ok_level_label = QLabel("Ok Level (1 to 1000000):")
-        self.warning_level_label = QLabel("Warning Level (1000000+):")
-        self.critical_level_label = QLabel("Critical Level (1000000000+):")
+        self.setMinimumSize(420,50)
+        self.setMaximumSize(1080,50)
 
-        self.no_count_color = QLabel("Gray")
-        self.ok_level_color = QLabel("Green")
-        self.warning_level_color = QLabel("Yellow")
-        self.critical_level_color = QLabel("Red")
+        self.no_count_color = (128, 128, 128)  # gray
+        self.ok_level_color = (0, 255, 0)  # green
+        self.warning_level_color = (255, 255, 0)  # yellow
+        self.critical_level_color = (255, 0, 0)  # red
 
-        self.ok_max_spinbox = QSpinBox()
-        self.warning_max_spinbox = QSpinBox()
-        self.ok_max_spinbox.setValue(1000000)
-        self.warning_max_spinbox.setValue(1000000000)
+        self.layout = QHBoxLayout(self)
+        self.layout.addWidget(QLabel("HeatMap Ranges"))
 
-        self.update_button = QPushButton("Update Heatmap")
+        # range 1: OK Level
+        self.ok_spinner = QSpinBox()
+        self.ok_spinner.setRange(1, 1000000000)
+        self.ok_spinner.setValue(100000)  # default value
+        self.layout.addWidget(QLabel("OK Level (Max)"))
+        self.layout.addWidget(self.ok_spinner)
 
-        self.layout.addWidget(self.no_count_label)
-        self.layout.addWidget(self.no_count_color)
-        self.layout.addWidget(self.ok_level_label)
-        self.layout.addWidget(self.ok_max_spinbox)
-        self.layout.addWidget(self.warning_level_label)
-        self.layout.addWidget(self.warning_max_spinbox)
-        self.layout.addWidget(self.critical_level_label)
-        self.layout.addWidget(self.critical_level_color)
-        self.layout.addWidget(self.update_button)
+        # range 2: Warning Level
+        self.warning_spinner = QSpinBox()
+        self.warning_spinner.setRange(1, 1000000000)
+        self.warning_spinner.setValue(100000000)  # default value
+        self.layout.addWidget(QLabel("Warning Level (Max)"))
+        self.layout.addWidget(self.warning_spinner)
 
-        self.setLayout(self.layout)
+        # connect signals
+        self.ok_spinner.valueChanged.connect(self.emit_range_changed)
+        self.warning_spinner.valueChanged.connect(self.emit_range_changed)
+
+    def emit_range_changed(self):
+        """Emit signal with updated ranges."""
+        ranges = self.get_ranges()
+        self.range_changed.emit(ranges)
 
     def get_ranges(self):
-        """Return the heatmap ranges."""
-        return {
-            "ok_max": self.ok_max_spinbox.value(),
-            "warning_max": self.warning_max_spinbox.value(),
-        }
+        """Get the current heatmap ranges."""
+        return [self.ok_spinner.value(), self.warning_spinner.value()]

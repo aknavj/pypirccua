@@ -1,19 +1,42 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+# Copyright (C) 2024, Ondrej Vanka
+# 
+# File:         pidbcardviewer.py
+# Description:  Qt Pi Database File Card Viewer in QList Widget
+# Version:      1.00
+# Author:       Ondrej Vanka @aknavj <ondrej@vanka.net>
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+"""
+
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QVBoxLayout, QWidget
 from PyQt5.QtCore import pyqtSignal
 
-# txt view
 class PiDbCardView(QListWidget):
     
     line_selected = pyqtSignal(int)  # signal emitted when a line is selected
 
     def __init__(self, parent=None):
         super().__init__(parent)
+
+        self.setMinimumSize(240,420)
+        self.setMaximumSize(240,980)
+
         self.line_mapping = {}
         
-        #self.layout = QVBoxLayout()
-        #self.list_widget = QListWidget()
-        #self.layout.addWidget(self.list_widget)
-        #self.setLayout(self.layout)
 
     def load_file(self, file_path):
         self.clear()

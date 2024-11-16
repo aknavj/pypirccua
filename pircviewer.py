@@ -1,5 +1,30 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+# Copyright (C) 2024, Ondrej Vanka
+# 
+# File:         pircviewer.py
+# Description:  Qt PiRc Viewer - main app
+# Version:      1.00
+# Author:       Ondrej Vanka @aknavj <ondrej@vanka.net>
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+"""
+
 from pitableview import *
 from pidbcardview import *
+from pidbcardlist import *
 
 from PyQt5.QtWidgets import (
     QMainWindow, QApplication, QSplitter, QFileDialog, QMenuBar, QAction
@@ -7,50 +32,68 @@ from PyQt5.QtWidgets import (
 
 import sys
 
-#
-# App main window
-#
 class PircViewer(QMainWindow):
 
     def __init__(self):
         super().__init__()
         self.setWindowTitle("pirccua - (not)Pickering Relay Cycle Counting Utility Application")
+        
+        self.setMinimumSize(640,480)
+        self.setMaximumSize(1920,1080)
+        
         self.resize(1200, 800)
 
-        central_widget = QWidget()
-        main_layout = QVBoxLayout(central_widget)
-        self.setCentralWidget(central_widget)
+        # initialize core widgets
+        self.heatmap_range_widget = HeatMapRange(self)
+        self.pi_db_card_list = PiDbCardList(self)  # pass self as parent
+        self.pi_db_card_view = PiDbCardView(self)
+        self.pi_db_table_view = PiTableView(self.heatmap_range_widget)
 
-        top_splitter = QSplitter(Qt.Horizontal)
+        # layout management
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
 
-        # heatmap widget
-        self.heatmap_range_widget = HeatMapRange()
+        layout = QVBoxLayout(self.central_widget)
+        splitter = QSplitter(self)
 
-        # fileviewer
-        self.file_view = PiDbCardView()
-        top_splitter.addWidget(self.file_view)
+        # add widgets to splitter
+        splitter.addWidget(self.pi_db_card_list)
+        splitter.addWidget(self.pi_db_card_view)
+        splitter.addWidget(self.pi_db_table_view)
 
-        # tableviewer
-        self.viewer_panel = PiTableView(self.heatmap_range_widget)
-        top_splitter.addWidget(self.viewer_panel)
+        layout.addWidget(splitter)
+        layout.addWidget(self.heatmap_range_widget)
 
-        top_splitter.setSizes([400, 800])  # Adjust initial sizes
-        main_layout.addWidget(top_splitter)
+        # signal & slots
+        self.pi_db_card_view.line_selected.connect(self.on_line_selected)
+        self.pi_db_table_view.cell_selected.connect(self.on_table_cell_selected)
+        self.pi_db_card_list.generation_selected.connect(self.load_file_from_tree)
+        self.heatmap_range_widget.range_changed.connect(self.update_heatmap)
 
-        main_layout.addWidget(self.heatmap_range_widget)
-
-        # signals&slots
-        self.file_view.line_selected.connect(self.on_line_selected)
-        self.viewer_panel.cell_selected.connect(self.on_table_cell_selected)
-        self.heatmap_range_widget.update_button.clicked.connect(self.update_heatmap)
-
+        # file menu
         self.create_menu()
 
     def create_menu(self):
         """Create the File -> Open menu."""
         menu = self.menuBar().addMenu("File")
+
         open_action = menu.addAction("Open")
         open_action.triggered.connect(self.open_file)
+
+        open_multiple_action = menu.addAction("Open Files")
+        open_multiple_action.triggered.connect(self.open_files)
+
+        clear_action = menu.addAction("Clear")
+        clear_action.triggered.connect(self.clear_all_data)
+
+        clear_action = menu.addAction("Exit")
+        clear_action.triggered.connect(self.app_exit)
+
+    def open_files(self):
+        """Open multiple files and add them to the PiCardList."""
+        file_paths, _ = QFileDialog.getOpenFileNames(self, "Open DB Files", "", "DB Files (*.db *.txt)")
+        for file_path in file_paths:
+            self.load_file(file_path)
 
     def open_file(self):
         """Open a file using a file dialog."""
@@ -58,97 +101,54 @@ class PircViewer(QMainWindow):
         if file_path:
             self.load_file(file_path)
 
-    def load_file(self, file_path):
-        """Load a file and update views."""
-        self.file_view.load_file(file_path)
+    def clear_all_data(self):
+        """Clear all data and reset the application state."""
+        self.pi_db_card_list.clear()
+        self.pi_db_card_view.clear()
+        self.pi_db_table_view.clear_tabs()
+
+    def app_exit(self):
+        """Exit the application."""
+        self.close()
+
+    def load_file_from_tree(self, file_path):
+        """Load a file when a generation node is clicked in the tree."""
         parser = PiDbCard(file_path)
         parsed_data = parser.parse_file()
-        self.viewer_panel.parsed_data = parsed_data
-        self.viewer_panel.populate_tabs()
+
+        # update the PiDbCardView and PiTableView with the selected file
+        self.pi_db_card_view.load_file(file_path)
+        self.pi_db_table_view.parsed_data = parsed_data
+        self.pi_db_table_view.populate_tabs()
+
+    def load_file(self, file_path):
+        
+        parser = PiDbCard(file_path)
+        parsed_data = parser.parse_file()
+
+        # add the parsed card to the list
+        self.pi_db_card_list.add_card(file_path, parsed_data)
+
+        # if the PiDbCardView and PiTableView are empty, load the first file
+        if self.pi_db_table_view.parsed_data is None:
+            self.pi_db_card_view.load_file(file_path)
+            self.pi_db_table_view.parsed_data = parsed_data
+            self.pi_db_table_view.populate_tabs()
 
     def on_line_selected(self, line_no):
-        line_text = self.file_view.line_mapping.get(line_no)
+        line_text = self.pi_db_card_view.line_mapping.get(line_no)
         if line_text:
-            self.viewer_panel.highlight_table_by_line(line_text)
+            self.pi_db_table_view.highlight_table_by_line(line_text)
 
     def on_table_cell_selected(self, relay_line):
-        for idx in range(self.file_view.count()):
-            if self.file_view.item(idx).text() == relay_line:
-                self.file_view.setCurrentRow(idx)
+        for idx in range(self.pi_db_card_view.count()):
+            if self.pi_db_card_view.item(idx).text() == relay_line:
+                self.pi_db_card_view.setCurrentRow(idx)
                 break
 
-    def update_heatmap(self):
-        """Update heatmap colors in all tables."""
-        self.viewer_panel.populate_tabs()
-
-
-    #def create_menu(self):
-    #    menu_bar = self.menuBar()
-    #    file_menu = menu_bar.addMenu("File")
-    #
-    #    open_file1_action = QAction("Open File 1", self)
-    #    open_file1_action.triggered.connect(lambda: self.file1_panel.load_file())
-    #    file_menu.addAction(open_file1_action)
-    #
-    #    open_file2_action = QAction("Open File 2", self)
-    #    open_file2_action.triggered.connect(lambda: self.file2_panel.load_file())
-    #    file_menu.addAction(open_file2_action)
-
-    #def compare_files(self):
-    #    if not self.file1_panel.parsed_data or not self.file2_panel.parsed_data:
-    #        self.summary.setText("Both files must be loaded to compare.")
-    #        return
-    #
-    #    differences = self.calculate_differences()
-    #    self.summary.setText(differences)
-
-    #def calculate_differences(self):
-    #    file1_data = self.file1_panel.parsed_data
-    #    file2_data = self.file2_panel.parsed_data
-    #
-    #    if not file1_data or not file2_data:
-    #        return "No data to compare."
-    #
-    #    summary = []
-    #
-    #    # compare logical Subunits
-    #    subunit_differences = self.compare_subunits(file1_data.get("subunits", []), file2_data.get("subunits", []))
-    #    summary.append(f"Logical Subunits: {subunit_differences['summary']}")
-    #
-    #    # compare physical Loops
-    #    loop_differences = self.compare_physical_loops(file1_data.get("physical_layers", []), file2_data.get("physical_layers", []))
-    #    summary.append(f"Physical Loops: {loop_differences['summary']}")
-    #
-    #    return "\n".join(summary)
-
-    #def compare_subunits(self, subunits1, subunits2):
-    #    differences = {"matches": 0, "mismatches": 0}
-    #    for subunit1, subunit2 in zip(subunits1, subunits2):
-    #        for (row, col), value1 in subunit1["relays"].items():
-    #            value2 = subunit2["relays"].get((row, col), 0)
-    #            if value1 == value2:
-    #                differences["matches"] += 1
-    #            else:
-    #                differences["mismatches"] += 1
-    #
-    #    total = differences["matches"] + differences["mismatches"]
-    #    summary = f"{differences['matches']} matches, {differences['mismatches']} mismatches ({total} total)."
-    #    return {"summary": summary}
-
-    #def compare_physical_loops(self, loops1, loops2):
-    #    differences = {"matches": 0, "mismatches": 0}
-    #    for loop1, loop2 in zip(loops1, loops2):
-    #        for (row, _), value1 in loop1["relays"].items():
-    #            value2 = loop2["relays"].get((row, 0), 0)
-    #            if value1 == value2:
-    #                differences["matches"] += 1
-    #            else:
-    #                differences["mismatches"] += 1
-    #
-    #    total = differences["matches"] + differences["mismatches"]
-    #    summary = f"{differences['matches']} matches, {differences['mismatches']} mismatches ({total} total)."
-    #    return {"summary": summary}
-
+    def update_heatmap(self, ranges):
+        """Update the heatmap in all table views."""
+        self.pi_db_table_view.reload_heatmap(ranges)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

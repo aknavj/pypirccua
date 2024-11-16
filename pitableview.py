@@ -1,3 +1,27 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+# Copyright (C) 2024, Ondrej Vanka
+# 
+# File:         pitableview.py
+# Description:  Qt Pi Database File parsed into Data Table View
+# Version:      1.00
+# Author:       Ondrej Vanka @aknavj <ondrej@vanka.net>
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+"""
+
 from pidbcard import *
 from heatmaprange import *
 
@@ -9,8 +33,7 @@ from matplotlib.figure import Figure
 import numpy as np
 import re
 
-# table viewer
-class PiTableView(QWidget):
+class PiTableView(QTabWidget):
 
     cell_selected = pyqtSignal(str)  # signal to emit the relay line text
 
@@ -26,27 +49,38 @@ class PiTableView(QWidget):
         self.parsed_data = None
         self.line_mapping = {}
         self.heatmap_range_widget = heatmap_range_widget  # ref to HeatMapRange widget
+        self.tables = [] # store references to all QTableWidgets (stupid HeatMapRange hotreload :D)
 
     def set_layer(self, layer_id, is_logical=True):
         self.layer_id = layer_id
         self.is_logical = is_logical
 
     def mousePressEvent(self, event):
-        """Emit the relay line for the selected cell."""
-        super().mousePressEvent(event)
-        item = self.itemAt(event.pos())
-        if item and self.layer_id is not None:
-            row, col = item.row(), item.column()
-            bit_number = row * self.columnCount() + col + 1
-            if self.is_logical:
-                relay_line = f"R;L;S{self.layer_id}BIT{bit_number};{item.text()}"
-            else:
-                relay_line = f"R;P;L{self.layer_id}BIT{bit_number};{item.text()}"
-            self.cell_selected.emit(relay_line)
+        """Handle mouse press events and highlight table items."""
+        # Get the current table in the active tab
+        current_widget = self.currentWidget()
+        if isinstance(current_widget, QTableWidget):
+            # Get the item at the mouse click position
+            table_item = current_widget.itemAt(event.pos())
+            if table_item:
+                table_item.setSelected(True)
+
+    #def mousePressEvent(self, event):
+    #    """Emit the relay line for the selected cell."""
+    #    super().mousePressEvent(event)
+    #    item = self.itemAt(event.pos())
+    #    if item and self.layer_id is not None:
+    #        row, col = item.row(), item.column()
+    #        bit_number = row * self.columnCount() + col + 1
+    #        if self.is_logical:
+    #            relay_line = f"R;L;S{self.layer_id}BIT{bit_number};{item.text()}"
+    #        else:
+    #            relay_line = f"R;P;L{self.layer_id}BIT{bit_number};{item.text()}"
+    #        self.cell_selected.emit(relay_line)
 
     def populate_tabs(self):
         """Populate tabs with parsed data."""
-        self.tab_widget.clear()
+        self.clear_tabs()
 
         if not self.parsed_data:
             return
@@ -65,6 +99,11 @@ class PiTableView(QWidget):
             loop_widget = self.create_physical_tab(loop)
             self.tab_widget.addTab(loop_widget, f"Physical {loop['loop_id']}")
 
+    def clear_tabs(self):
+        """Clear tabs."""
+        self.tables.clear()
+        self.tab_widget.clear()
+
     def create_subunit_tab(self, subunit):
         """Create a tab for a logical subunit."""
         widget = QWidget()
@@ -73,7 +112,7 @@ class PiTableView(QWidget):
         rows, cols = subunit["rows"], subunit["cols"]
         table = QTableWidget(rows, cols)
 
-        if cols > 1:  # mtrix view
+        if cols > 1:  # matrix view
             table.setHorizontalHeaderLabels([f"Col {c + 1}" for c in range(cols)])
             table.setVerticalHeaderLabels([f"Row {r + 1}" for r in range(rows)])
         else:  # column view
@@ -87,6 +126,8 @@ class PiTableView(QWidget):
             item = QTableWidgetItem(str(value))
             item.setBackground(get_heatmap_color(value, ranges))
             table.setItem(row, col, item)
+
+        self.tables.append(table)  # add table reference to the list
 
         layout.addWidget(table)
 
@@ -119,6 +160,8 @@ class PiTableView(QWidget):
             item = QTableWidgetItem(str(value))
             item.setBackground(get_heatmap_color(value, ranges))
             table.setItem(row, col, item)
+
+        self.tables.append(table)  # add table reference to the list
 
         layout.addWidget(table)
 
@@ -284,3 +327,17 @@ class PiTableView(QWidget):
                 table = self.tab_widget.widget(index).findChild(QTableWidget)
                 if table:
                     table.setCurrentCell(row, col)
+
+    def apply_heatmap_to_table(self, table, heatmap_ranges):
+        """Apply heatmap colors to a specific table."""
+        for row in range(table.rowCount()):
+            for col in range(table.columnCount()):
+                item = table.item(row, col)
+                if item:
+                    value = int(item.text())
+                    item.setBackground(get_heatmap_color(value, heatmap_ranges))
+
+    def reload_heatmap(self, heatmap_ranges):
+        """Reapply heatmap colors to all stored tables."""
+        for table in self.tables:
+            self.apply_heatmap_to_table(table, heatmap_ranges)

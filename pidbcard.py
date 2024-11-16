@@ -1,7 +1,31 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+# Copyright (C) 2024, Ondrej Vanka
+# 
+# File:         pidbcard.py
+# Description:  *.db (Database) PXI Card data structure parser
+# Version:      1.00
+# Author:       Ondrej Vanka @aknavj <ondrej@vanka.net>
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+"""
+
 import re
 
-# db card file parser
 class PiDbCard:
+
     def __init__(self, file_path):
         self.file_path = file_path
         self.card_data = {
@@ -38,11 +62,29 @@ class PiDbCard:
 
     def parse_header(self, line, line_no):
         """Parse the header line."""
-        match = re.match(r"PILPXIDB([0-9]+);(.*)", line)
+        match = re.match(r"(PILPXIDB[0-9]+);([^,]+),([0-9]+),([0-9.]+)", line)
         if match:
-            version, card_info = match.groups()
-            self.card_data["header"] = {"version": int(version), "card_info": card_info}
-            self.line_mapping[line_no] = {"type": "header"}
+            pilpxi_version, card_id, card_sn, fw_version = match.groups()
+            pilpxi_version_num = int(pilpxi_version[-3:])  # extract numeric version
+            
+            # determine if the card is simulated
+            is_simulated = card_sn.startswith("1000000")
+
+            self.card_data["header"] = {
+                "pilpxi_version": pilpxi_version_num,
+                "card_id": card_id,
+                "card_sn": card_sn,
+                "fw_version": fw_version,
+                "is_simulated": is_simulated
+            }
+
+            self.line_mapping[line_no] = {"type": "card_id"}
+
+        #match = re.match(r"PILPXIDB([0-9]+);(.*)", line)
+        #if match:
+        #    version, card_info = match.groups()
+        #    self.card_data["header"] = {"version": int(version), "card_info": card_info}
+        #    self.line_mapping[line_no] = {"type": "header"}
 
     def parse_generation(self, line, line_no):
         """Parse the generation line."""
@@ -105,7 +147,6 @@ class PiDbCard:
                         cols = subunit["cols"]
                         row, col = (bit - 1) // cols, (bit - 1) % cols
                         subunit["relays"][(row, col)] = count
-                        print(f"Logical Relay Parsed: Subunit {subunit_id}, Row {row}, Col {col}, Count {count}")
                         self.line_mapping[line_no] = {"type": "logical", "row": row, "col": col}
                         break
 
@@ -114,7 +155,5 @@ class PiDbCard:
                 for loop in self.card_data["physical_layers"]:
                     if loop["loop_id"] == loop_id:
                         loop["relays"][(bit - 1, 0)] = count
-                        print(f"Physical Relay Parsed: Loop {loop_id}, Row {bit - 1}, Count {count}")
                         self.line_mapping[line_no] = {"type": "physical", "row": bit - 1, "col": 0}
                         break
-
