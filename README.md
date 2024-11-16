@@ -22,9 +22,9 @@ The **file format specification** is described in the [official reference manual
 
 ## Screenshots
 
-![initial db view](./imgs/app1.png)
+![initial db view](./assets/app1.png)
 
-![dbfile -> table association](./imgs/app2.png)
+![dbfile -> table association](./assets/app2.png)
 
 ## Dependencies
 
