@@ -24,6 +24,9 @@
 
 import re
 
+#
+# class DbCard
+#
 class PiDbCard:
 
     def __init__(self, file_path):

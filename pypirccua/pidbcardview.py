@@ -25,6 +25,9 @@
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QVBoxLayout, QWidget
 from PyQt5.QtCore import pyqtSignal
 
+#
+# class DbCardView
+#
 class PiDbCardView(QListWidget):
     
     line_selected = pyqtSignal(int)  # signal emitted when a line is selected

@@ -5,7 +5,7 @@
 # 
 # File:         pitableview.py
 # Description:  Qt Pi Database File parsed into Data Table View
-# Version:      1.01
+# Version:      1.05
 # Author:       Ondrej Vanka @aknavj <ondrej@vanka.net>
 # 
 # This program is free software: you can redistribute it and/or modify
@@ -25,15 +25,23 @@
 from .pidbcard import *
 from .heatmaprange import *
 
-from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QTabWidget, QSplitter
-from PyQt5.QtCore import Qt
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import ( 
+    Qt, pyqtSignal
+) 
+from PyQt5.QtWidgets import (
+    QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QTabWidget, QSplitter, QMessageBox, QFileDialog
+)
+
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import numpy as np
 import statistics
 import re
+import csv
 
+#
+# class PiTableView
+#
 class PiTableView(QTabWidget):
 
     cell_selected = pyqtSignal(str)  # signal to emit the relay line text
@@ -384,3 +392,44 @@ class PiTableView(QTabWidget):
         """Reapply heatmap colors to all stored tables."""
         for table in self.tables:
             self.apply_heatmap_to_table(table, heatmap_ranges)
+
+    def export_to_csv(self):
+        """Export the current tab's table values into a CSV file."""
+        current_tab_index = self.currentIndex()
+        current_widget = self.tab_widget.widget(current_tab_index).findChild(QTableWidget)
+
+        if not current_widget:
+            QMessageBox.warning(self, "Export Error", "No table found in the selected tab.")
+            return
+
+        table = current_widget
+
+        # get the file name to save the CSV
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, 
+            "Export to CSV", 
+            "", 
+            "CSV Files (*.csv);;All Files (*)", 
+            options=options
+        )
+        if not file_path:
+            return  # user canceled the save dialog
+
+        try:
+            with open(file_path, mode='w', newline='', encoding='utf-8') as file:
+                writer = csv.writer(file)
+                
+                # write headers
+                headers = [table.horizontalHeaderItem(col).text() for col in range(table.columnCount())]
+                writer.writerow(headers)
+
+                # write table content
+                for row in range(table.rowCount()):
+                    row_data = [table.item(row, col).text() if table.item(row, col) else '' 
+                                for col in range(table.columnCount())]
+                    writer.writerow(row_data)
+
+            QMessageBox.information(self, "Export Successful", f"Data successfully exported to {file_path}.")
+        except Exception as e:
+            QMessageBox.critical(self, "Export Error", f"Failed to export data: {e}")

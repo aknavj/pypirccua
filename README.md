@@ -1,11 +1,11 @@
 # pypirccua
 
-This humble project introduces a **Relay Cycle Counting utility application** implemented in Python. The utility functions as a **pxi database file parser** and data viewer, with some **basic statistics** (questionable).
+pypirccua - Python Pickering Relay Cycle Counting Utility Application is a PyQt-based application for visualizing and analyzing relay counts from DB files from Pickering PXI cards.
 
 The **file format specification** is described in the [official reference manual](https://downloads.pickeringtest.info/downloads/RelayCountingApplication/RelayCountingAppHelp.pdf)
 
 ## License
-- Under GNU/GPL
+- Under GNU/GPLv3
 
 ## Features
 - Parses **RelayCount Card Database Files** (similar to the NI PXIe Health Monitor).
@@ -13,12 +13,27 @@ The **file format specification** is described in the [official reference manual
 - Allows users to set a **count heatmap** and provides **visual feedback** as a reference.
 - Associates a `.db` file with a **table view**.
 
-## Future Nice-to-Haves
-1. **Interconnect DB data mapping** with the eBirst Card Definition set XML data, and visualize side-by-side with the default database **CardTableView**.
-2. If time permits: 
-   - Implement **PiLpxi & LXI client bridge functionality** into the application.
-   - Add **dataset export functionality** to Google Sheets.
-   - Introduce additional statistics with an improved graph view (including support for zoom-in/out, selection, and callbacks in the table view).
+## Changelog
+
+### [1.x.x] Future (somwhere in the future)
+
++ Support: **Interconnect DB data mapping** with the eBirst Card Definition set XML data, and visualize side-by-side with the default database **PiTableView**.
++ Support: **dataset export functionality** to Google Sheets.
++ Support: **PiLpxi & LXI client bridge functionality** into the application.
++ Support: additional statistics with an improved graph view (including support for zoom-in/out, selection, and callbacks in the table view).
+
+### [1.1.0] - 2024-11-20
+
++ Added: Thread support for Db card loading.
++ Added: PiDbCardList support for removing and clearing card list.
++ Added: PiDbCardList detect already existing duplicates when adding Card DB File to the list.
++ Added: PircViewer proper ProgressBar, StatusBar for app feedbacking information to the user.
++ Added: PircViewer About dialog.
++ Added: PiTableView export table to csv functionality.
+
+### [1.0.0] - 2024-11-17
+
++ Initial released version of the application.
 
 ## Screenshots
 
