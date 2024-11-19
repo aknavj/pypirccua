@@ -38,6 +38,9 @@ def get_heatmap_color(value, ranges):
     else:
         return QColor(255, 0, 0)        # red for critical Level
 
+#
+# class HeatMapRange
+#
 class HeatMapRange(QWidget):
 
     range_changed = pyqtSignal(list)  # signal emitted when ranges are updated
