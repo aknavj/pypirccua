@@ -41,12 +41,27 @@ The **file format specification** is described in the [official reference manual
 
 ![dbfile -> table association](./assets/app2.png)
 
-## Install
+## Install using pypi
+```
+pip install pypirccua
+```
+
+### or upgrade package
+```
+pip install --upgrade pypirccua
+```
+
+### Run after pip installation
+```
+pypirccua
+```
+
+## Install from sources
 ```
 pip install .
 ```
 
-## Run
+## Run from sources
 ```
-pypirccua
+python -m pypirccua
 ```
